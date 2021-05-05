@@ -14,10 +14,10 @@ import Url
 
 -- TODO: 0) Remove TODO from other modules
 -- TODO: 1) Implement (ClickedCompleted TodoId) TodoList page
--- TODO: 2) Add simple Home page
--- TODO: 3) Add error log port for DecodeFlagsError model variant
+-- TODO: 2) Add error log port for DecodeFlagsError model variant
+-- TODO: 3) Add simple Home page
 -- TODO: 4) Access Page.Posts.Model and Page.TodoList.Model data in this Main module (Debug.log)
--- TODO: 6) Implement Page.Posts.Model as opaque type
+-- TODO: 6) Implement Page.Posts.Model as opaque type and compare with Page.TodoList.Model implementation
 -- TODO: 6) Implement Api module as Opaque type
 -- TODO: 7) Use Url.Builder
 

@@ -1,10 +1,9 @@
 {
-  "name": "ctu-spa",
+  "name": "elm-spa",
   "version": "1.0.0",
-  "description": "Playground SPA app",
-  "author": "Daniel Němec <nemecda7@cvut.cz>",
+  "description": "Example ELM SPA connected to public API",
+  "author": "Daniel Němec",
   "license": "MIT",
-  "private": true,
   "engines": {
     "node": ">=12.18.3"
   },

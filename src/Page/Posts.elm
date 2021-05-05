@@ -7,13 +7,18 @@ import Html.Events as Events
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
-import Loader
 import Route
 import Styles
 
 
 type alias Model =
-    Loader.Loader (List Post)
+    Loader
+
+
+type Loader
+    = Loading
+    | Error Http.Error
+    | Success (List Post)
 
 
 type Msg
@@ -34,7 +39,7 @@ type alias Post =
 
 init : String -> ( Model, Cmd Msg )
 init api =
-    ( Loader.loading
+    ( Loading
     , fetchPosts api
     )
 
@@ -62,8 +67,13 @@ decodePost =
 update : String -> Msg -> Model -> ( Model, Cmd Msg )
 update api msg model =
     case msg of
-        FetchedPosts postsResponse ->
-            ( Loader.handleResponse postsResponse
+        FetchedPosts response ->
+            ( case response of
+                Ok posts ->
+                    Success posts
+
+                Err httpError ->
+                    Error httpError
             , Cmd.none
             )
 
@@ -71,30 +81,30 @@ update api msg model =
             -- TODO: remove this case - of (continue from last week)
             -- HINT: use msg payload
             case model of
-                Loader.Loading ->
+                Loading ->
                     ( model
                     , Cmd.none
                     )
 
-                Loader.Error _ ->
+                Error _ ->
                     ( model
                     , Cmd.none
                     )
 
-                Loader.Success posts ->
-                    ( Loader.Loading
+                Success posts ->
+                    ( Loading
                     , deletePostCmd api posts postId
                     )
 
         DeletedResponse posts_ postId response ->
-            let
-                updatedPosts =
+            ( case response of
+                Ok () ->
                     posts_
                         |> List.filter (.id >> (/=) postId)
-            in
-            ( response
-                |> Result.map (always updatedPosts)
-                |> Loader.handleResponse
+                        |> Success
+
+                Err httpError ->
+                    Error httpError
             , Cmd.none
             )
 
@@ -117,16 +127,16 @@ view wrapMsg model =
     let
         child =
             case model of
-                Loader.Loading ->
+                Loading ->
                     [ Html.text "Loading posts ..." ]
 
-                Loader.Error _ ->
+                Error _ ->
                     [ Html.text "Posts error !!!" ]
 
-                Loader.Success posts ->
+                Success posts ->
                     postsView posts
     in
-    { title = "Posts page"
+    { title = "Posts Page"
     , body =
         [ Header.view Route.Posts
         , child

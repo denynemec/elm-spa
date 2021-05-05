@@ -8,13 +8,18 @@ import Html.Events as Events
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
-import Loader
 import Route
 import Styles
 
 
 type Model
-    = ModelInternal (List Todo) (Loader.Loader (List Todo))
+    = ModelInternal (List Todo) Loader
+
+
+type Loader
+    = Loading
+    | Error Http.Error
+    | Success
 
 
 type Msg
@@ -36,7 +41,7 @@ type alias Todo =
 
 init : String -> ( Model, Cmd Msg )
 init api =
-    ( ModelInternal [] Loader.loading
+    ( ModelInternal [] Loading
     , fetchTodos api
     )
 
@@ -64,13 +69,18 @@ decodeTodo =
 update : String -> Msg -> Model -> ( Model, Cmd Msg )
 update api msg (ModelInternal todos _) =
     case msg of
-        FetchedTodos todosResponse ->
-            ( ModelInternal (Result.withDefault todos todosResponse) <| Loader.handleResponse todosResponse
+        FetchedTodos response ->
+            ( case response of
+                Ok successTodos ->
+                    ModelInternal successTodos Success
+
+                Err httpError ->
+                    ModelInternal todos <| Error httpError
             , Cmd.none
             )
 
         ClickedDeleteTodo todoId ->
-            ( ModelInternal todos Loader.loading
+            ( ModelInternal todos Loading
             , deleteTodoCmd api todoId
             )
 
@@ -80,10 +90,12 @@ update api msg (ModelInternal todos _) =
                     todos
                         |> List.filter (.id >> (/=) todoId)
             in
-            ( response
-                |> Result.map (always updatedTodos)
-                |> Loader.handleResponse
-                |> ModelInternal updatedTodos
+            ( case response of
+                Ok () ->
+                    ModelInternal updatedTodos Success
+
+                Err httpError ->
+                    ModelInternal todos <| Error httpError
             , Cmd.none
             )
 
@@ -102,20 +114,20 @@ deleteTodoCmd api todoId =
 
 
 view : (Msg -> msg) -> Model -> Browser.Document msg
-view wrapMsg (ModelInternal todos model) =
+view wrapMsg (ModelInternal todos loader) =
     let
         child =
-            case model of
-                Loader.Loading ->
+            case loader of
+                Loading ->
                     [ Html.text "Loading todo list ..." ]
 
-                Loader.Error _ ->
+                Error _ ->
                     [ Html.text "Todo list error !!!" ]
 
-                Loader.Success _ ->
+                Success ->
                     todosView todos
     in
-    { title = "Todo List page"
+    { title = "Todo List Page"
     , body =
         [ Header.view Route.TodoList
         , child
