@@ -1,0 +1,10 @@
+{
+  "checks": {
+    "SingleFieldRecord": false,
+    "DebugCrash": false,
+    "NoTopLevelSignature": true
+  },
+  "TriggerWords": {
+    "words": []
+  }
+}

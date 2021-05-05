@@ -1,0 +1,28 @@
+{
+  "name": "ctu-spa",
+  "version": "1.0.0",
+  "description": "Playground SPA app",
+  "author": "Daniel Němec <nemecda7@cvut.cz>",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=12.18.3"
+  },
+  "scripts": {
+    "analyse": "yarn elm-analyse -s -p 50000",
+    "build": "elm-app build",
+    "dev": "elm-app start BROWSER=none",
+    "format": "yarn format:elm-format && yarn format:prettier",
+    "format:elm-format": "elm-format --yes ./src/ ./tests/",
+    "format:prettier": "prettier --write \"src/**/*.js\" README.md elm-analyse.json",
+    "precommit": "yarn format && yarn test",
+    "test": "elm-app test",
+    "test:watch": "test --watch"
+  },
+  "devDependencies": {
+    "elm": "^0.19.1-5",
+    "elm-analyse": "^0.16.5",
+    "elm-format": "^0.8.5",
+    "prettier": "^2.2.1"
+  }
+}
