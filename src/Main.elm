@@ -62,22 +62,14 @@ routeToPage : String -> Route.Route -> ( Page, Cmd Msg )
 routeToPage api route =
     case route of
         Route.TodoList ->
-            let
-                ( pageModel, pageCmd ) =
-                    TodoList.init api
-            in
-            ( TodoList pageModel
-            , Cmd.map TodoListMsg pageCmd
-            )
+            api
+                |> TodoList.init
+                |> Tuple.mapBoth TodoList (Cmd.map TodoListMsg)
 
         Route.Posts ->
-            let
-                ( pageModel, pageCmd ) =
-                    Posts.init api
-            in
-            ( Posts pageModel
-            , Cmd.map PostsMsg pageCmd
-            )
+            api
+                |> Posts.init
+                |> Tuple.mapBoth Posts (Cmd.map PostsMsg)
 
 
 type Msg
@@ -103,12 +95,18 @@ update msg model =
             )
 
         ( ChangedUrl url, AppInitialized key api _ ) ->
-            let
-                ( page, pageCmd ) =
-                    urlToPage api url
-            in
-            ( AppInitialized key api page, pageCmd )
+            url
+                |> urlToPage api
+                |> Tuple.mapFirst (AppInitialized key api)
 
+        -- ( ChangedUrl url, AppInitialized key api _ ) ->
+        -- let
+        --     ( page, pageCmd ) =
+        --         urlToPage api url
+        -- in
+        -- ( AppInitialized key api page
+        -- , pageCmd
+        -- )
         ( PostsMsg postsMsg, AppInitialized key api (Posts postsModel) ) ->
             postsModel
                 |> Posts.update api postsMsg
