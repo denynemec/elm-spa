@@ -62,9 +62,9 @@ Serve output on server.
 
 ## About application
 
-This application was bootstrapped with [create-elm-app](https://github.com/halfzebra/create-elm-app). SPA contains few pages with integrated public [api](https://jsonplaceholder.typicode.com/). You can see 2 different flows, how can we can (I'm not saying, we should develop in both, only we can..) develop in ELM. Pages are implemented as [opaque type](https://ckoster22.medium.com/advanced-types-in-elm-opaque-types-ec5ec3b84ed2), you can see how pages are connected into whole ELM architecture - usage `Html.map wrapMsg` and `Cmd.map wrapMsg`.
+This application was bootstrapped with [create-elm-app](https://github.com/halfzebra/create-elm-app). SPA contains few pages with integrated public [api](https://jsonplaceholder.typicode.com/). You can see 2 different flows, how we can (I'm not saying, we should develop in both, only we can..) develop in ELM. Pages are implemented as [opaque type](https://ckoster22.medium.com/advanced-types-in-elm-opaque-types-ec5ec3b84ed2), you can see how pages are connected into whole ELM architecture - usage `Html.map wrapMsg` and `Cmd.map wrapMsg`.
 
-Application is inspired by [Richard Feldman's real world SPA](https://github.com/rtfeldman/elm-spa-example)
+Application is inspired by [Richard Feldman's real world SPA](https://github.com/rtfeldman/elm-spa-example).
 
 ## Application structure
 
@@ -80,7 +80,7 @@ See described ELM and JS modules - in `src` directory.
 
 - `Page.NotFound.elm` - simple not found page for unknown routes
 - `Page.Posts.elm` - page with posts - implemented that we are ignoring model in update functions and we are using just data from msg payload, that can be old - potencial issue with asynchronous operations (cmd)
-- `Page.TodoList.elm` - page with todo items - implemeted without ignoring model in update. See that business logic for user - when to show loading indicator and update data (on success response on delete request from API), etc. is same as in `Page.Posts.elm` module. The data model is just designated differently - the way how the data `Model` is stored, is different. See what can be achieved with data modeling!
+- `Page.TodoList.elm` - page with todo items - implemeted without ignoring model in update. See that business logic for user - when to show loading indicator and update data (on success response on delete request from API), etc. is same as in `Page.Posts.elm` module. The data model is just designated differently - the way, how the data `Model` is stored, is different. See what can be achieved with data modeling!
 
 ### JS modules
 
