@@ -1,6 +1,6 @@
 # README
 
-Playground for ELM features. 
+Playground for ELM features.
 
 Except description, how to run and develop in this stack, you can also find here description for files, scripts and tools used in this example playground.
 
@@ -15,6 +15,7 @@ Except description, how to run and develop in this stack, you can also find here
 ### Install dependencies
 
 Run in terminal:
+
 ```bash
 yarn install
 ```
@@ -22,15 +23,37 @@ yarn install
 ### Development mode
 
 Run in terminal:
+
 ```bash
 yarn dev
 ```
 
 It will run application on [localhost:3000](http://localhost:3000/).
 
+### Format, test, precommit
+
+To format code, run in terminal:
+
+```bash
+yarn format
+```
+
+To run tests, run in terminal:
+
+```bash
+yarn test
+```
+
+Before each commit, run precommit:
+
+```bash
+yarn precommit
+```
+
 ### Production mode
 
 Run in terminal:
+
 ```bash
 yarn build
 ```
@@ -57,7 +80,7 @@ See described ELM and JS modules - in `src` directory.
 
 - `Page.NotFound.elm` - simple not found page for unknown routes
 - `Page.Posts.elm` - page with posts - implemented that we are ignoring model in update functions and we are using just data from msg payload, that can be old - potencial issue with asynchronous operations (cmd)
-- `Page.TodoList.elm` - page with todo items - implemeted without ignoring model in update. See that business logic for user - when to show loading indicator and update data (on success response on delete request from API), etc. is same as in `Page.Posts.elm` module. Just data model is designated differently - how it is stored in `Model` is different. See what can be achied with data modeling!
+- `Page.TodoList.elm` - page with todo items - implemeted without ignoring model in update. See that business logic for user - when to show loading indicator and update data (on success response on delete request from API), etc. is same as in `Page.Posts.elm` module. The data model is just designated differently - the way how the data `Model` is stored, is different. See what can be achieved with data modeling!
 
 ### JS modules
 
@@ -68,7 +91,7 @@ See described ELM and JS modules - in `src` directory.
 
 - `public/index.html` - base html for whole application. See `<div id="root"></div>` - entrypoint for our ELM application - elm is connected to this `div` in JS layer (`src/index.js` module)
 
-### Scripts
+## Scripts
 
 You can find scripts in `package.json`. To run one of scripts described below, add `yarn` prefix in terminal.
 
@@ -82,6 +105,7 @@ You can find scripts in `package.json`. To run one of scripts described below, a
 - `test` - run tests
 - `test:watch` - run tests in watch mode
 
-### Tools
+## Configutation files for tools (tools)
 
-TODO
+- [elm-analyse](https://github.com/stil4m/elm-analyse) - tool to do static analyse form ELM files. See base configuration for it in `elm-analyse.json` file.
+- [prettier](https://prettier.io/) - formatter for JS and HTML files. See `prettierignore` a `.prettierrc.yaml` configuration files.
