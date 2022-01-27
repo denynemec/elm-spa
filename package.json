@@ -21,6 +21,7 @@
     "test:watch": "test --watch"
   },
   "devDependencies": {
+    "create-elm-app": "^5.22.0",
     "elm": "^0.19.1-5",
     "elm-analyse": "^0.16.5",
     "elm-format": "^0.8.5",
