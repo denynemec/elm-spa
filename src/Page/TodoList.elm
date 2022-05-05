@@ -2,154 +2,232 @@ module Page.TodoList exposing (Model, Msg, init, update, view)
 
 import Browser
 import Header
-import Html exposing (Html)
+import Html
 import Html.Attributes as Attributes
 import Html.Events as Events
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
+import Json.Encode as Encode
 import Route
 import Styles
 
 
-type Model
-    = ModelInternal (List Todo) Loader
-
-
-type Loader
-    = Loading
-    | Error Http.Error
-    | Success
-
-
-type Msg
-    = FetchedTodos (Result Http.Error (List Todo))
-    | ClickedDeleteTodo TodoId
-      -- | ClickedCompleteTodo TodoId Bool
-    | DeletedResponse TodoId (Result Http.Error ())
-
-
-type alias TodoId =
-    Int
-
-
-type alias Todo =
-    { id : TodoId
-    , title : String
+type alias Model =
+    { todoList : TodoList
+    , newTodo : String
     }
 
 
-init : String -> ( Model, Cmd Msg )
-init api =
-    ( ModelInternal [] Loading
-    , fetchTodos api
-    )
+type TodoList
+    = Loading
+    | Error String
+    | Success (List TodoItem)
 
 
-fetchTodos : String -> Cmd Msg
-fetchTodos api =
+type alias TodoItem =
+    { id : Int
+    , name : String
+    , completed : Bool
+    }
+
+
+getTodos : String -> Cmd Msg
+getTodos api =
     Http.get
         { url = api ++ "todos"
-        , expect = Http.expectJson FetchedTodos decodeTodos
+        , expect = Http.expectJson GotTodos decodeTodoList
         }
 
 
-decodeTodos : Decode.Decoder (List Todo)
-decodeTodos =
-    Decode.list decodeTodo
+postTodo : String -> String -> Cmd Msg
+postTodo api label =
+    let
+        body =
+            Encode.object [ ( "label", Encode.string label ) ]
+    in
+    Http.post
+        { url = api ++ "todos"
+        , body = Http.jsonBody body
+        , expect = Http.expectWhatever SaveTodoResponse
+        }
 
 
-decodeTodo : Decode.Decoder Todo
-decodeTodo =
-    Decode.succeed Todo
-        |> Pipeline.required "id" Decode.int
-        |> Pipeline.required "title" Decode.string
-
-
-update : String -> Msg -> Model -> ( Model, Cmd Msg )
-update api msg (ModelInternal todos _) =
-    case msg of
-        FetchedTodos response ->
-            ( case response of
-                Ok successTodos ->
-                    ModelInternal successTodos Success
-
-                Err httpError ->
-                    ModelInternal todos <| Error httpError
-            , Cmd.none
-            )
-
-        ClickedDeleteTodo todoId ->
-            ( ModelInternal todos Loading
-            , deleteTodoCmd api todoId
-            )
-
-        DeletedResponse todoId response ->
-            let
-                updatedTodos =
-                    todos
-                        |> List.filter (.id >> (/=) todoId)
-            in
-            ( case response of
-                Ok () ->
-                    ModelInternal updatedTodos Success
-
-                Err httpError ->
-                    ModelInternal todos <| Error httpError
-            , Cmd.none
-            )
-
-
-deleteTodoCmd : String -> TodoId -> Cmd Msg
-deleteTodoCmd api todoId =
+putTodo : String -> TodoItem -> Cmd Msg
+putTodo api todoItem =
+    let
+        body =
+            Encode.object
+                [ ( "label", Encode.string todoItem.name )
+                , ( "completed", Encode.bool <| not todoItem.completed )
+                ]
+    in
     Http.request
-        { method = "DELETE"
+        { method = "PUT"
         , headers = []
-        , url = api ++ "todos/" ++ String.fromInt todoId
-        , body = Http.emptyBody
-        , expect = Http.expectWhatever (DeletedResponse todoId)
+        , url = api ++ "todos/" ++ String.fromInt todoItem.id
+        , body = Http.jsonBody body
+        , expect = Http.expectWhatever <| CompletedTodoItemResponse todoItem
         , timeout = Nothing
         , tracker = Nothing
         }
 
 
+decodeTodoList : Decode.Decoder (List TodoItem)
+decodeTodoList =
+    Decode.list decodeTodoItem
+
+
+decodeTodoItem : Decode.Decoder TodoItem
+decodeTodoItem =
+    Decode.succeed TodoItem
+        |> Pipeline.required "id" Decode.int
+        |> Pipeline.required "label" Decode.string
+        |> Pipeline.required "completed" Decode.bool
+
+
+init : String -> ( Model, Cmd Msg )
+init api =
+    ( { todoList = Loading
+      , newTodo = ""
+      }
+    , getTodos api
+    )
+
+
+type Msg
+    = GotTodos (Result Http.Error (List TodoItem))
+    | InsertedNewTodo String
+    | ClickedAddTodo
+    | SaveTodoResponse (Result Http.Error ())
+    | CompletedTodo TodoItem
+    | CompletedTodoItemResponse TodoItem (Result Http.Error ())
+
+
+update : String -> Msg -> Model -> ( Model, Cmd Msg )
+update api msg model =
+    case msg of
+        GotTodos result ->
+            case result of
+                Ok todos ->
+                    ( { model | todoList = Success todos }, Cmd.none )
+
+                Err _ ->
+                    ( { model | todoList = Error "Unable to get TODOs" }, Cmd.none )
+
+        InsertedNewTodo todo ->
+            ( { model | newTodo = todo }, Cmd.none )
+
+        ClickedAddTodo ->
+            ( model, postTodo api model.newTodo )
+
+        SaveTodoResponse result ->
+            case result of
+                Ok _ ->
+                    ( model, getTodos api )
+
+                Err _ ->
+                    ( { model | todoList = Error "Unable to save TODOs" }, Cmd.none )
+
+        CompletedTodo todoItem ->
+            -- let
+            --     updatedTodoList =
+            --         case model.todoList of
+            --             Loading ->
+            --                 model.todoList
+            --             Error _ ->
+            --                 model.todoList
+            --             Success todos ->
+            --                 todos
+            --                     |> List.map
+            --                         (\todo ->
+            --                             if todo.id == todoItem.id then
+            --                                 { todo | completed = not todoItem.completed }
+            --                             else
+            --                                 todo
+            --                         )
+            --                     |> Success
+            -- in
+            -- ( { model | todoList = updatedTodoList }, putTodo todoItem )
+            ( model, putTodo api todoItem )
+
+        CompletedTodoItemResponse todoItem result ->
+            let
+                updatedTodoList =
+                    case model.todoList of
+                        Loading ->
+                            model.todoList
+
+                        Error _ ->
+                            model.todoList
+
+                        Success todos ->
+                            todos
+                                |> List.map
+                                    (\todo ->
+                                        if todo.id == todoItem.id then
+                                            { todo | completed = not todoItem.completed }
+
+                                        else
+                                            todo
+                                    )
+                                |> Success
+            in
+            case result of
+                Ok _ ->
+                    ( { model | todoList = updatedTodoList }, Cmd.none )
+
+                Err _ ->
+                    ( { model | todoList = Error "Unable to update todo" }, Cmd.none )
+
+
 view : (Msg -> msg) -> Model -> Browser.Document msg
-view wrapMsg (ModelInternal todos loader) =
-    let
-        child =
-            case loader of
-                Loading ->
-                    [ Html.text "Loading todo list ..." ]
-
-                Error _ ->
-                    [ Html.text "Todo list error !!!" ]
-
-                Success ->
-                    todosView todos
-    in
+view wrapMsg model =
     { title = "Todo List Page"
     , body =
         [ Header.view Route.TodoList
-        , child
-            |> Html.main_ Styles.mainStyleAttributes
-            |> Html.map wrapMsg
+        , Html.map wrapMsg <|
+            Html.div Styles.containerStyle
+                [ Html.h1 [] [ Html.text "Todo list" ]
+                , todoForm model
+                , todoListView model.todoList
+                ]
         ]
     }
 
 
-todosView : List Todo -> List (Html Msg)
-todosView =
-    List.map todoView
+todoListView : TodoList -> Html.Html Msg
+todoListView todoList =
+    case todoList of
+        Loading ->
+            Html.div [] [ Html.text "Loading..." ]
+
+        Error error ->
+            Html.div Styles.todoListErrorStyle [ Html.text error ]
+
+        Success todos ->
+            Html.ul Styles.todoListListStyle <| List.map todoView todos
 
 
-todoView : Todo -> Html Msg
-todoView { id, title } =
-    Html.li Styles.listItemStyleAttributes
-        [ Html.input
-            [ Attributes.type_ "checkbox" ]
-            []
-        , Html.text title
-        , Html.button
-            [ Events.onClick <| ClickedDeleteTodo id ]
-            [ Html.text "Remove todo" ]
+todoView : TodoItem -> Html.Html Msg
+todoView todoItem =
+    let
+        checkText =
+            if todoItem.completed then
+                "✓"
+
+            else
+                ""
+    in
+    Html.li Styles.todoStyle
+        [ Html.a (Styles.todoCheckStyle ++ [ Events.onClick <| CompletedTodo todoItem ]) [ Html.text checkText ]
+        , Html.text todoItem.name
+        ]
+
+
+todoForm : Model -> Html.Html Msg
+todoForm model =
+    Html.div Styles.formStyle
+        [ Html.input (Styles.formInputStyle ++ [ Attributes.type_ "text", Attributes.value model.newTodo, Events.onInput InsertedNewTodo ]) []
+        , Html.button (Styles.formButtonStyle ++ [ Events.onClick ClickedAddTodo ]) [ Html.text "Add" ]
         ]

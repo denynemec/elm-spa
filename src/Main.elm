@@ -5,21 +5,18 @@ import Browser.Navigation as Navigation
 import Flags
 import Html
 import Page.NotFound as NotFound
-import Page.Posts as Posts
 import Page.TodoList as TodoList
 import Route
 import Url
 
 
 
--- TODO: 0) Remove TODO from other modules
--- TODO: 1) Implement (ClickedCompleted TodoId) TodoList page
--- TODO: 2) Add error log port for DecodeFlagsError model variant
--- TODO: 3) Add simple Home page
--- TODO: 4) Access Page.Posts.Model and Page.TodoList.Model data in this Main module (Debug.log)
--- TODO: 5) Implement Page.Posts.Model as opaque type and compare with Page.TodoList.Model implementation
--- TODO: 6) Implement Api module as Opaque type
--- TODO: 7) Use Url.Builder
+-- TODO: 1) Add error log port for DecodeFlagsError model variant
+-- TODO: 2) Add simple Home page
+-- TODO: 3) Access Page.TodoList.Model data in this Main module (Debug.log)
+-- TODO: 4) Implement Page.TodoList.Model as opaque type and compare with previous implementation
+-- TODO: 5) Implement Api module as Opaque type
+-- TODO: 6) Use Url.Builder
 
 
 type Model
@@ -29,7 +26,6 @@ type Model
 
 type Page
     = TodoList TodoList.Model
-    | Posts Posts.Model
     | NotFound
 
 
@@ -66,16 +62,10 @@ routeToPage api route =
                 |> TodoList.init
                 |> Tuple.mapBoth TodoList (Cmd.map TodoListMsg)
 
-        Route.Posts ->
-            api
-                |> Posts.init
-                |> Tuple.mapBoth Posts (Cmd.map PostsMsg)
-
 
 type Msg
     = ChangedUrl Url.Url
     | ClickedLink Browser.UrlRequest
-    | PostsMsg Posts.Msg
     | TodoListMsg TodoList.Msg
 
 
@@ -107,11 +97,6 @@ update msg model =
         -- ( AppInitialized key api page
         -- , pageCmd
         -- )
-        ( PostsMsg postsMsg, AppInitialized key api (Posts postsModel) ) ->
-            postsModel
-                |> Posts.update api postsMsg
-                |> Tuple.mapBoth (Posts >> AppInitialized key api) (Cmd.map PostsMsg)
-
         ( TodoListMsg todoListMsg, AppInitialized key api (TodoList todoListModel) ) ->
             todoListModel
                 |> TodoList.update api todoListMsg
@@ -143,9 +128,6 @@ pageView page =
 
         TodoList todoListModel ->
             TodoList.view TodoListMsg todoListModel
-
-        Posts postsModel ->
-            Posts.view PostsMsg postsModel
 
 
 main : Program Flags.RawFlags Model Msg

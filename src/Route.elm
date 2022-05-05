@@ -12,14 +12,12 @@ import Url.Parser as Parser
 
 type Route
     = TodoList
-    | Posts
 
 
 parser : Parser.Parser (Route -> a) a
 parser =
     Parser.oneOf
         [ Parser.map TodoList (Parser.s "todo-list")
-        , Parser.map Posts (Parser.s "posts")
         ]
 
 
@@ -38,6 +36,3 @@ routeToString route =
     case route of
         TodoList ->
             "todo-list"
-
-        Posts ->
-            "posts"

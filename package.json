@@ -12,13 +12,14 @@
     "build": "elm-app build",
     "clean": "rimraf elm-stuff",
     "dev": "run-s clean dev:start",
-    "dev:start": "elm-app start BROWSER=none",
+    "dev:start": "BROWSER=none elm-app start",
     "format": "yarn format:elm-format && yarn format:prettier",
     "format:elm-format": "elm-format --yes ./src/ ./tests/",
-    "format:prettier": "prettier --write \"src/**/*.js\" README.md elm-analyse.json",
+    "format:prettier": "prettier --write \"{server,src}/**/*.js\" README.md elm-analyse.json",
     "precommit": "yarn format && yarn test",
     "test": "elm-app test",
-    "test:watch": "test --watch"
+    "test:watch": "test --watch",
+    "server": "nodemon server/index.js"
   },
   "devDependencies": {
     "create-elm-app": "^5.22.0",
@@ -29,5 +30,9 @@
     "npm-run-all": "^4.1.5",
     "prettier": "^2.2.1",
     "rimraf": "^3.0.2"
+  },
+  "dependencies": {
+    "express": "^4.18.1",
+    "nodemon": "^2.0.16"
   }
 }

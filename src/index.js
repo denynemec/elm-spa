@@ -4,7 +4,7 @@ import * as serviceWorker from './serviceWorker';
 
 Elm.Main.init({
   node: document.getElementById('root'),
-  flags: { baseApiUrl: 'https://jsonplaceholder.typicode.com/' },
+  flags: { baseApiUrl: 'http://localhost:4000/' },
 });
 
 // If you want your app to work offline and load faster, you can change
