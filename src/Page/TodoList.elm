@@ -1,5 +1,6 @@
 module Page.TodoList exposing (Model, Msg, init, update, view)
 
+import Api
 import Browser
 import Header
 import Html
@@ -32,28 +33,21 @@ type alias TodoItem =
     }
 
 
-getTodos : String -> Cmd Msg
-getTodos api =
-    Http.get
-        { url = api ++ "todos"
-        , expect = Http.expectJson GotTodos decodeTodoList
-        }
+getTodos : Api.Api -> Cmd Msg
+getTodos =
+    Api.get GotTodos decodeTodoList "todos"
 
 
-postTodo : String -> String -> Cmd Msg
+postTodo : Api.Api -> String -> Cmd Msg
 postTodo api label =
     let
         body =
             Encode.object [ ( "label", Encode.string label ) ]
     in
-    Http.post
-        { url = api ++ "todos"
-        , body = Http.jsonBody body
-        , expect = Http.expectWhatever SaveTodoResponse
-        }
+    Api.post SaveTodoResponse body "todos" api
 
 
-putTodo : String -> TodoItem -> Cmd Msg
+putTodo : Api.Api -> TodoItem -> Cmd Msg
 putTodo api todoItem =
     let
         body =
@@ -62,15 +56,9 @@ putTodo api todoItem =
                 , ( "completed", Encode.bool <| not todoItem.completed )
                 ]
     in
-    Http.request
-        { method = "PUT"
-        , headers = []
-        , url = api ++ "todos/" ++ String.fromInt todoItem.id
-        , body = Http.jsonBody body
-        , expect = Http.expectWhatever <| CompletedTodoItemResponse todoItem
-        , timeout = Nothing
-        , tracker = Nothing
-        }
+    api
+        |> Api.addAuthorizationHeader "My custom JWT Token value"
+        |> Api.put (CompletedTodoItemResponse todoItem) body ("todos/" ++ String.fromInt todoItem.id)
 
 
 decodeTodoList : Decode.Decoder (List TodoItem)
@@ -86,7 +74,7 @@ decodeTodoItem =
         |> Pipeline.required "completed" Decode.bool
 
 
-init : String -> ( Model, Cmd Msg )
+init : Api.Api -> ( Model, Cmd Msg )
 init api =
     ( { todoList = Loading
       , newTodo = ""
@@ -102,9 +90,10 @@ type Msg
     | SaveTodoResponse (Result Http.Error ())
     | CompletedTodo TodoItem
     | CompletedTodoItemResponse TodoItem (Result Http.Error ())
+    | ClickedCompleted TodoItem
 
 
-update : String -> Msg -> Model -> ( Model, Cmd Msg )
+update : Api.Api -> Msg -> Model -> ( Model, Cmd Msg )
 update api msg model =
     case msg of
         GotTodos result ->
@@ -129,26 +118,33 @@ update api msg model =
                 Err _ ->
                     ( { model | todoList = Error "Unable to save TODOs" }, Cmd.none )
 
+        ClickedCompleted todoItem ->
+            let
+                updatedTodoList =
+                    case model.todoList of
+                        Loading ->
+                            model.todoList
+
+                        Error _ ->
+                            model.todoList
+
+                        Success todos ->
+                            todos
+                                |> List.map
+                                    (\todo ->
+                                        if todo.id == todoItem.id then
+                                            { todo | completed = not todoItem.completed }
+
+                                        else
+                                            todo
+                                    )
+                                |> Success
+            in
+            ( { model | todoList = updatedTodoList }
+            , Cmd.none
+            )
+
         CompletedTodo todoItem ->
-            -- let
-            --     updatedTodoList =
-            --         case model.todoList of
-            --             Loading ->
-            --                 model.todoList
-            --             Error _ ->
-            --                 model.todoList
-            --             Success todos ->
-            --                 todos
-            --                     |> List.map
-            --                         (\todo ->
-            --                             if todo.id == todoItem.id then
-            --                                 { todo | completed = not todoItem.completed }
-            --                             else
-            --                                 todo
-            --                         )
-            --                     |> Success
-            -- in
-            -- ( { model | todoList = updatedTodoList }, putTodo todoItem )
             ( model, putTodo api todoItem )
 
         CompletedTodoItemResponse todoItem result ->
@@ -220,7 +216,7 @@ todoView todoItem =
                 ""
     in
     Html.li Styles.todoStyle
-        [ Html.a (Styles.todoCheckStyle ++ [ Events.onClick <| CompletedTodo todoItem ]) [ Html.text checkText ]
+        [ Html.div (Styles.todoCheckStyle ++ [ Events.onClick <| CompletedTodo todoItem ]) [ Html.text checkText ]
         , Html.text todoItem.name
         ]
 
