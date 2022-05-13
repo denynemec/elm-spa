@@ -2,6 +2,7 @@ module Page.TodoList exposing (Model, Msg, init, update, view)
 
 import Api
 import Browser
+import Form.Filter as Filter
 import Header
 import Html
 import Html.Attributes as Attributes
@@ -10,20 +11,15 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import RemoteData
 import Route
 import Styles
 
 
 type alias Model =
-    { todoList : TodoList
-    , newTodo : String
+    { todoList : RemoteData.RemoteData String (List TodoItem)
+    , filter : Filter.Model
     }
-
-
-type TodoList
-    = Loading
-    | Error String
-    | Success (List TodoItem)
 
 
 type alias TodoItem =
@@ -76,21 +72,25 @@ decodeTodoItem =
 
 init : Api.Api -> ( Model, Cmd Msg )
 init api =
-    ( { todoList = Loading
-      , newTodo = ""
+    let
+        ( filter, filterCmd ) =
+            Filter.init
+    in
+    ( { todoList = RemoteData.Loading
+      , filter = filter
       }
-    , getTodos api
+    , Cmd.batch [ getTodos api, Cmd.map FilterMsg filterCmd ]
     )
 
 
 type Msg
     = GotTodos (Result Http.Error (List TodoItem))
-    | InsertedNewTodo String
-    | ClickedAddTodo
+    | ClickedAddTodo String
     | SaveTodoResponse (Result Http.Error ())
     | CompletedTodo TodoItem
     | CompletedTodoItemResponse TodoItem (Result Http.Error ())
     | ClickedCompleted TodoItem
+    | FilterMsg Filter.Msg
 
 
 update : Api.Api -> Msg -> Model -> ( Model, Cmd Msg )
@@ -99,16 +99,22 @@ update api msg model =
         GotTodos result ->
             case result of
                 Ok todos ->
-                    ( { model | todoList = Success todos }, Cmd.none )
+                    ( { model | todoList = RemoteData.Success todos }, Cmd.none )
 
                 Err _ ->
-                    ( { model | todoList = Error "Unable to get TODOs" }, Cmd.none )
+                    ( { model | todoList = RemoteData.Failure "Unable to get TODOs" }, Cmd.none )
 
-        InsertedNewTodo todo ->
-            ( { model | newTodo = todo }, Cmd.none )
+        FilterMsg filterMsg ->
+            let
+                ( updatedFilter, filterCmd ) =
+                    Filter.update filterMsg model.filter
+            in
+            ( { model | filter = updatedFilter }
+            , Cmd.map FilterMsg filterCmd
+            )
 
-        ClickedAddTodo ->
-            ( model, postTodo api model.newTodo )
+        ClickedAddTodo newTodo ->
+            ( model, postTodo api newTodo )
 
         SaveTodoResponse result ->
             case result of
@@ -116,29 +122,40 @@ update api msg model =
                     ( model, getTodos api )
 
                 Err _ ->
-                    ( { model | todoList = Error "Unable to save TODOs" }, Cmd.none )
+                    ( { model | todoList = RemoteData.Failure "Unable to save TODOs" }, Cmd.none )
 
         ClickedCompleted todoItem ->
             let
                 updatedTodoList =
-                    case model.todoList of
-                        Loading ->
-                            model.todoList
+                    model.todoList
+                        |> RemoteData.map
+                            (List.map
+                                (\todo ->
+                                    if todo.id == todoItem.id then
+                                        { todo | completed = not todoItem.completed }
 
-                        Error _ ->
-                            model.todoList
+                                    else
+                                        todo
+                                )
+                            )
 
-                        Success todos ->
-                            todos
-                                |> List.map
-                                    (\todo ->
-                                        if todo.id == todoItem.id then
-                                            { todo | completed = not todoItem.completed }
-
-                                        else
-                                            todo
-                                    )
-                                |> Success
+                -- case model.todoList of
+                --     RemoteData.Loading ->
+                --         model.todoList
+                --     RemoteData.Failure _ ->
+                --         model.todoList
+                --     RemoteData.Success todos ->
+                --         todos
+                --             |> List.map
+                --                 (\todo ->
+                --                     if todo.id == todoItem.id then
+                --                         { todo | completed = not todoItem.completed }
+                --                     else
+                --                         todo
+                --                 )
+                --             |> RemoteData.Success
+                --     RemoteData.NotAsked ->
+                --         model.todoList
             in
             ( { model | todoList = updatedTodoList }
             , Cmd.none
@@ -150,31 +167,42 @@ update api msg model =
         CompletedTodoItemResponse todoItem result ->
             let
                 updatedTodoList =
-                    case model.todoList of
-                        Loading ->
-                            model.todoList
+                    model.todoList
+                        |> RemoteData.map
+                            (List.map
+                                (\todo ->
+                                    if todo.id == todoItem.id then
+                                        { todo | completed = not todoItem.completed }
 
-                        Error _ ->
-                            model.todoList
+                                    else
+                                        todo
+                                )
+                            )
 
-                        Success todos ->
-                            todos
-                                |> List.map
-                                    (\todo ->
-                                        if todo.id == todoItem.id then
-                                            { todo | completed = not todoItem.completed }
-
-                                        else
-                                            todo
-                                    )
-                                |> Success
+                -- case model.todoList of
+                --     RemoteData.Loading ->
+                --         model.todoList
+                --     RemoteData.Failure _ ->
+                --         model.todoList
+                --     RemoteData.Success todos ->
+                --         todos
+                --             |> List.map
+                --                 (\todo ->
+                --                     if todo.id == todoItem.id then
+                --                         { todo | completed = not todoItem.completed }
+                --                     else
+                --                         todo
+                --                 )
+                --             |> RemoteData.Success
+                --     RemoteData.NotAsked ->
+                --         model.todoList
             in
             case result of
                 Ok _ ->
                     ( { model | todoList = updatedTodoList }, Cmd.none )
 
                 Err _ ->
-                    ( { model | todoList = Error "Unable to update todo" }, Cmd.none )
+                    ( { model | todoList = RemoteData.Failure "Unable to update todo" }, Cmd.none )
 
 
 view : (Msg -> msg) -> Model -> Browser.Document msg
@@ -185,24 +213,27 @@ view wrapMsg model =
         , Html.map wrapMsg <|
             Html.div Styles.containerStyle
                 [ Html.h1 [] [ Html.text "Todo list" ]
-                , todoForm model
+                , Filter.view FilterMsg ClickedAddTodo model.filter
                 , todoListView model.todoList
                 ]
         ]
     }
 
 
-todoListView : TodoList -> Html.Html Msg
+todoListView : RemoteData.RemoteData String (List TodoItem) -> Html.Html Msg
 todoListView todoList =
     case todoList of
-        Loading ->
+        RemoteData.Loading ->
             Html.div [] [ Html.text "Loading..." ]
 
-        Error error ->
+        RemoteData.Failure error ->
             Html.div Styles.todoListErrorStyle [ Html.text error ]
 
-        Success todos ->
+        RemoteData.Success todos ->
             Html.ul Styles.todoListListStyle <| List.map todoView todos
+
+        RemoteData.NotAsked ->
+            Html.div [] [ Html.text "Not asked..." ]
 
 
 todoView : TodoItem -> Html.Html Msg
@@ -218,12 +249,4 @@ todoView todoItem =
     Html.li Styles.todoStyle
         [ Html.div (Styles.todoCheckStyle ++ [ Events.onClick <| CompletedTodo todoItem ]) [ Html.text checkText ]
         , Html.text todoItem.name
-        ]
-
-
-todoForm : Model -> Html.Html Msg
-todoForm model =
-    Html.div Styles.formStyle
-        [ Html.input (Styles.formInputStyle ++ [ Attributes.type_ "text", Attributes.value model.newTodo, Events.onInput InsertedNewTodo ]) []
-        , Html.button (Styles.formButtonStyle ++ [ Events.onClick ClickedAddTodo ]) [ Html.text "Add" ]
         ]
