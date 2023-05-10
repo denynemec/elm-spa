@@ -8,7 +8,6 @@ Except description, how to run and develop in this stack, you can also find here
 
 ### Prerequisites
 
-- [yarn](https://yarnpkg.com/)
 - [node.js](https://nodejs.org/en/) in version `12.18.3` or newer
 - [elm](https://guide.elm-lang.org/install/elm.html)
 
@@ -17,7 +16,7 @@ Except description, how to run and develop in this stack, you can also find here
 Run in terminal:
 
 ```bash
-yarn install
+npm install
 ```
 
 ### Development mode
@@ -25,7 +24,7 @@ yarn install
 Run in terminal:
 
 ```bash
-yarn dev
+npm run dev
 ```
 
 It will run application on [localhost:3000](http://localhost:3000/).
@@ -35,19 +34,19 @@ It will run application on [localhost:3000](http://localhost:3000/).
 To format code, run in terminal:
 
 ```bash
-yarn format
+npm run format
 ```
 
 To run tests, run in terminal:
 
 ```bash
-yarn test
+npm run test
 ```
 
 Before each commit, run precommit:
 
 ```bash
-yarn precommit
+npm run precommit
 ```
 
 ### Production mode
@@ -55,7 +54,7 @@ yarn precommit
 Run in terminal:
 
 ```bash
-yarn build
+npm run build
 ```
 
 Serve output on server.
@@ -93,7 +92,7 @@ See described ELM and JS modules - in `src` directory.
 
 ## Scripts
 
-You can find scripts in `package.json`. To run one of scripts described below, add `yarn` prefix in terminal.
+You can find scripts in `package.json`. To run one of scripts described below, add `npm run` prefix in terminal.
 
 - `analyse` - run and launch [elm-analyse](https://github.com/stil4m/elm-analyse) process. Go to [localhost:50000](http://localhost:50000/) to see results. Port 50000 is hardcoded in script. This process has hot reload - you can change code and you can see updated results
 - `build` - build application in Production mode
