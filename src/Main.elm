@@ -1,4 +1,4 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Browser
 import Browser.Navigation as Navigation
@@ -6,6 +6,7 @@ import Flags
 import Html
 import Page.NotFound as NotFound
 import Page.TodoList as TodoList
+import Page.TodoListSecond as TodoListSecond
 import Route
 import Url
 
@@ -19,6 +20,9 @@ import Url
 -- TODO: 6) Use Url.Builder
 
 
+port logError : String -> Cmd msg
+
+
 type Model
     = DecodeFlagsError String
     | AppInitialized Navigation.Key String Page
@@ -26,6 +30,7 @@ type Model
 
 type Page
     = TodoList TodoList.Model
+    | TodoListSecond TodoListSecond.Model
     | NotFound
 
 
@@ -34,7 +39,7 @@ init rawFlags url key =
     case Flags.decodeFlags rawFlags of
         Err decodeFlagsError ->
             ( DecodeFlagsError decodeFlagsError
-            , Cmd.none
+            , Cmd.batch [ logError decodeFlagsError ]
             )
 
         Ok flags ->
@@ -62,11 +67,17 @@ routeToPage api route =
                 |> TodoList.init
                 |> Tuple.mapBoth TodoList (Cmd.map TodoListMsg)
 
+        Route.TodoListSecond ->
+            api
+                |> TodoListSecond.init
+                |> Tuple.mapBoth TodoListSecond (Cmd.map TodoListSecondMsg)
+
 
 type Msg
     = ChangedUrl Url.Url
     | ClickedLink Browser.UrlRequest
     | TodoListMsg TodoList.Msg
+    | TodoListSecondMsg TodoListSecond.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -102,6 +113,11 @@ update msg model =
                 |> TodoList.update api todoListMsg
                 |> Tuple.mapBoth (TodoList >> AppInitialized key api) (Cmd.map TodoListMsg)
 
+        ( TodoListSecondMsg todoListSecondMsg, AppInitialized key api (TodoListSecond todoListSecondModel) ) ->
+            todoListSecondModel
+                |> TodoListSecond.update api todoListSecondMsg
+                |> Tuple.mapBoth (TodoListSecond >> AppInitialized key api) (Cmd.map TodoListSecondMsg)
+
         _ ->
             ( model
             , Cmd.none
@@ -128,6 +144,13 @@ pageView page =
 
         TodoList todoListModel ->
             TodoList.view TodoListMsg todoListModel
+
+        TodoListSecond todoListSecondModel ->
+            let
+                _ =
+                    Debug.log "TodoList" todoListSecondModel.newTodo
+            in
+            TodoListSecond.view TodoListSecondMsg todoListSecondModel
 
 
 main : Program Flags.RawFlags Model Msg

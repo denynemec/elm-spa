@@ -49,6 +49,7 @@ navigationLinkView isActive currentRoute =
 routeList : List Route.Route
 routeList =
     [ Route.TodoList
+    , Route.TodoListSecond
     ]
 
 
@@ -57,3 +58,6 @@ routeToLinkText route =
     case route of
         Route.TodoList ->
             "Todo list"
+
+        Route.TodoListSecond ->
+            "Todo list second!!!!"

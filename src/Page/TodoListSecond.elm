@@ -1,4 +1,4 @@
-module Page.TodoList exposing (Model, Msg, init, update, view)
+module Page.TodoListSecond exposing (Model, Msg, init, update, view)
 
 import Browser
 import Header
@@ -14,11 +14,7 @@ import Styles
 import Ui.Button as Button
 
 
-type Model
-    = ModelInternal ModelPayload
-
-
-type alias ModelPayload =
+type alias Model =
     { todoList : TodoList
     , newTodo : String
     }
@@ -93,10 +89,9 @@ decodeTodoItem =
 
 init : String -> ( Model, Cmd Msg )
 init api =
-    ( ModelInternal
-        { todoList = Loading
-        , newTodo = ""
-        }
+    ( { todoList = Loading
+      , newTodo = ""
+      }
     , getTodos api
     )
 
@@ -111,21 +106,21 @@ type Msg
 
 
 update : String -> Msg -> Model -> ( Model, Cmd Msg )
-update api msg ((ModelInternal ({ newTodo, todoList } as modelPayload)) as model) =
+update api msg model =
     case msg of
         GotTodos result ->
             case result of
                 Ok todos ->
-                    ( ModelInternal { modelPayload | todoList = Success todos }, Cmd.none )
+                    ( { model | todoList = Success todos }, Cmd.none )
 
                 Err _ ->
-                    ( ModelInternal { modelPayload | todoList = Error "Unable to get TODOs" }, Cmd.none )
+                    ( { model | todoList = Error "Unable to get TODOs" }, Cmd.none )
 
         InsertedNewTodo todo ->
-            ( ModelInternal { modelPayload | newTodo = todo }, Cmd.none )
+            ( { model | newTodo = todo }, Cmd.none )
 
         ClickedAddTodo ->
-            ( model, postTodo api newTodo )
+            ( model, postTodo api model.newTodo )
 
         SaveTodoResponse result ->
             case result of
@@ -133,7 +128,7 @@ update api msg ((ModelInternal ({ newTodo, todoList } as modelPayload)) as model
                     ( model, getTodos api )
 
                 Err _ ->
-                    ( ModelInternal { modelPayload | todoList = Error "Unable to save TODOs" }, Cmd.none )
+                    ( { model | todoList = Error "Unable to save TODOs" }, Cmd.none )
 
         CompletedTodo todoItem ->
             -- let
@@ -160,12 +155,12 @@ update api msg ((ModelInternal ({ newTodo, todoList } as modelPayload)) as model
         CompletedTodoItemResponse todoItem result ->
             let
                 updatedTodoList =
-                    case todoList of
+                    case model.todoList of
                         Loading ->
-                            todoList
+                            model.todoList
 
                         Error _ ->
-                            todoList
+                            model.todoList
 
                         Success todos ->
                             todos
@@ -181,22 +176,22 @@ update api msg ((ModelInternal ({ newTodo, todoList } as modelPayload)) as model
             in
             case result of
                 Ok _ ->
-                    ( ModelInternal { modelPayload | todoList = updatedTodoList }, Cmd.none )
+                    ( { model | todoList = updatedTodoList }, Cmd.none )
 
                 Err _ ->
-                    ( ModelInternal { modelPayload | todoList = Error "Unable to update todo" }, Cmd.none )
+                    ( { model | todoList = Error "Unable to update todo" }, Cmd.none )
 
 
 view : (Msg -> msg) -> Model -> Browser.Document msg
-view wrapMsg (ModelInternal ({ todoList } as modelPayload)) =
+view wrapMsg model =
     { title = "Todo List Page"
     , body =
-        [ Header.view Route.TodoList
+        [ Header.view Route.TodoListSecond
         , Html.map wrapMsg <|
             Html.div Styles.containerStyle
                 [ Html.h1 [] [ Html.text "Todo list" ]
-                , todoForm modelPayload
-                , todoListView todoList
+                , todoForm model
+                , todoListView model.todoList
                 ]
         ]
     }
@@ -231,12 +226,12 @@ todoView todoItem =
         ]
 
 
-todoForm : ModelPayload -> Html.Html Msg
-todoForm { newTodo } =
+todoForm : Model -> Html.Html Msg
+todoForm model =
     Html.div Styles.formStyle
-        [ Html.input (Styles.formInputStyle ++ [ Attributes.type_ "text", Attributes.value newTodo, Events.onInput InsertedNewTodo ]) []
+        [ Html.input (Styles.formInputStyle ++ [ Attributes.type_ "text", Attributes.value model.newTodo, Events.onInput InsertedNewTodo ]) []
         , Button.view
             { msg = ClickedAddTodo
-            , label = "Add"
+            , label = "+"
             }
         ]
