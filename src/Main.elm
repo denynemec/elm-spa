@@ -1,5 +1,6 @@
 port module Main exposing (main)
 
+import Api
 import Browser
 import Browser.Navigation as Navigation
 import Flags
@@ -25,7 +26,7 @@ port logError : String -> Cmd msg
 
 type Model
     = DecodeFlagsError String
-    | AppInitialized Navigation.Key String Page
+    | AppInitialized Navigation.Key Api.Api Page
 
 
 type Page
@@ -44,22 +45,30 @@ init rawFlags url key =
 
         Ok flags ->
             let
-                api =
+                baseApiUrl =
                     Flags.toBaseApiUrl flags
+
+                apiInitParams =
+                    { baseApiUrl = baseApiUrl
+                    , token = "MOCK TOKEN"
+                    }
+
+                api =
+                    Api.init apiInitParams
             in
             url
                 |> urlToPage api
                 |> Tuple.mapFirst (AppInitialized key api)
 
 
-urlToPage : String -> Url.Url -> ( Page, Cmd Msg )
+urlToPage : Api.Api -> Url.Url -> ( Page, Cmd Msg )
 urlToPage api =
     Route.fromUrl
         >> Maybe.map (routeToPage api)
         >> Maybe.withDefault ( NotFound, Cmd.none )
 
 
-routeToPage : String -> Route.Route -> ( Page, Cmd Msg )
+routeToPage : Api.Api -> Route.Route -> ( Page, Cmd Msg )
 routeToPage api route =
     case route of
         Route.TodoList ->

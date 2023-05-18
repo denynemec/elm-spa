@@ -1,5 +1,6 @@
 module Page.TodoListSecond exposing (Model, Msg, init, update, view)
 
+import Api
 import Browser
 import Header
 import Html
@@ -33,28 +34,21 @@ type alias TodoItem =
     }
 
 
-getTodos : String -> Cmd Msg
+getTodos : Api.Api -> Cmd Msg
 getTodos api =
-    Http.get
-        { url = api ++ "todos"
-        , expect = Http.expectJson GotTodos decodeTodoList
-        }
+    Api.getExpectJson "todos" GotTodos decodeTodoList api
 
 
-postTodo : String -> String -> Cmd Msg
+postTodo : Api.Api -> String -> Cmd Msg
 postTodo api label =
     let
         body =
             Encode.object [ ( "label", Encode.string label ) ]
     in
-    Http.post
-        { url = api ++ "todos"
-        , body = Http.jsonBody body
-        , expect = Http.expectWhatever SaveTodoResponse
-        }
+    Api.post "todos" SaveTodoResponse body api
 
 
-putTodo : String -> TodoItem -> Cmd Msg
+putTodo : Api.Api -> TodoItem -> Cmd Msg
 putTodo api todoItem =
     let
         body =
@@ -62,16 +56,11 @@ putTodo api todoItem =
                 [ ( "label", Encode.string todoItem.name )
                 , ( "completed", Encode.bool <| not todoItem.completed )
                 ]
+
+        pathname =
+            "todos/" ++ String.fromInt todoItem.id
     in
-    Http.request
-        { method = "PUT"
-        , headers = []
-        , url = api ++ "todos/" ++ String.fromInt todoItem.id
-        , body = Http.jsonBody body
-        , expect = Http.expectWhatever <| CompletedTodoItemResponse todoItem
-        , timeout = Nothing
-        , tracker = Nothing
-        }
+    Api.put pathname (CompletedTodoItemResponse todoItem) body api
 
 
 decodeTodoList : Decode.Decoder (List TodoItem)
@@ -87,12 +76,14 @@ decodeTodoItem =
         |> Pipeline.required "completed" Decode.bool
 
 
-init : String -> ( Model, Cmd Msg )
+init : Api.Api -> ( Model, Cmd Msg )
 init api =
     ( { todoList = Loading
       , newTodo = ""
       }
-    , getTodos api
+    , api
+        |> Api.updateAuthorizationHeader "NEW TOKEN"
+        |> getTodos
     )
 
 
@@ -105,7 +96,7 @@ type Msg
     | CompletedTodoItemResponse TodoItem (Result Http.Error ())
 
 
-update : String -> Msg -> Model -> ( Model, Cmd Msg )
+update : Api.Api -> Msg -> Model -> ( Model, Cmd Msg )
 update api msg model =
     case msg of
         GotTodos result ->
